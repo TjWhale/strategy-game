@@ -31,9 +31,25 @@ pygame_clock = pygame.time.Clock()
 # These are the main game objects which are imported from their relevant files above.
 
 world_map = world_map_class()  # This is the background hex map.
-gui = gui_class() # This is the gui on the screen on top of the hex map.
+gui = gui_class([screen_width, screen_height]) # This is the gui on the screen on top of the hex map.
 popup = False # If any other screen is in view it's a popup on top of everything else.
 # If a popup is in action the rest of the screen cannot be clicked on until the popup is closed.
+
+#if the user clicks what have they clicked on?
+def handle_mouse_click(event):
+	if popup:
+		pass
+		#do the collides only with the popup window
+	else:
+		#check the gui to see if that has been clicked
+		gui_clicked = gui.mouse_click(event)
+		#if it hasn't then check the map
+		if not gui_clicked:
+			world_map.mouse_click(event)
+
+#handle the mouse hovering on the screen
+def handle_mouse_hover():
+	pass
 
 
 running = True
@@ -44,6 +60,10 @@ while running:
 		elif event.type == KEYDOWN:
 			if event.key == K_ESCAPE:
 				running = False
+		#handle moust clicks
+		elif event.type == pygame.MOUSEBUTTONDOWN:
+			handle_mouse_click(event)
+
 
 	       
 
@@ -53,6 +73,8 @@ while running:
 	gui.draw(screen)
 	if popup:
 		popup.draw(screen)
+
+	handle_mouse_hover()
 
 	pygame.display.flip()
 

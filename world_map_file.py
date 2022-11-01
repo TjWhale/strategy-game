@@ -9,3 +9,6 @@ class world_map_class:
 
 	def draw(self, screen):
 		pygame.draw.rect(screen, [255,0,0], self.position)
+
+	def mouse_click(self, position):
+		print("You clicked on the map")
