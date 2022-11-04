@@ -35,8 +35,17 @@ class world_map_class:
 			for tile in tile_line:
 				tile.draw(screen, self.origin_coordinates, self.zoom_level, self.tile_image_height_offset)
 
-	def mouse_click(self, position):
+	def mouse_click(self, event):
 		print("You clicked on the map")
+		if event.type == pygame.MOUSEBUTTONDOWN:
+			#zoom the screen with the scroll wheel
+			if event.button == 4:
+				if self.zoom_level < 4:
+					self.zoom_level = min(4, self.zoom_level+1)
+
+			elif event.button == 5:
+				if self.zoom_level > 1:
+					self.zoom_level = max(1, self.zoom_level-1)
 
 class world_map_tile:
 	def __init__(self, i, j, tile_image_size):
@@ -45,22 +54,23 @@ class world_map_tile:
 
 		self.tile_image_size = tile_image_size #how big is the tile image in pixels?
 
-		self.x = 200 #the current coordinates of the top left of the tile relative to scrolling and zooming
-		self.y = 200
+		self.x = 0 #the current coordinates of the top left of the tile relative to scrolling and zooming
+		self.y = 0
 
 		self.base_terrain = random.choice([tile_plain, tile_desert, tile_deep_ocean, tile_shallow_ocean, tile_human_grass])
 
 	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
 		#compute your relative top left corner
-		self.x = 0.75*self.i*self.tile_image_size[0] - origin_coordinates[0]
-		self.y = self.j*self.tile_image_size[1] - origin_coordinates[1]
+		self.x = (0.75*self.i*self.tile_image_size[0] - origin_coordinates[0])*zoom_level
+		self.y = (self.j*self.tile_image_size[1] - origin_coordinates[1])*zoom_level
 		if self.i % 2 == 1:
-			self.y += self.tile_image_size[1]/2
+			self.y += self.tile_image_size[1]*zoom_level/2
 
 		#draw a polygon at that position
-		points = self.get_polygon_points()
-		pygame.draw.polygon(screen, [250,0,0], points, int(2))
-		screen.blit(self.base_terrain, (self.x, self.y - tile_image_height_offset))
+		#points = self.get_polygon_points()
+		#pygame.draw.polygon(screen, [250,0,0], points, int(2))
+		drawn_tile = pygame.transform.rotozoom(self.base_terrain, 0, zoom_level)
+		screen.blit(drawn_tile, (self.x, self.y - tile_image_height_offset*zoom_level))
 
 	def get_polygon_points(self):
 		points = [[self.x + 0.25*self.tile_image_size[0], self.y], 
