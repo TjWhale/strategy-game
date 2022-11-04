@@ -8,9 +8,6 @@ import math
 import random
 from pygame.locals import *
 
-from world_map_file import world_map_class
-from gui_file import gui_class
-
 # Setup the screen, it's important that later we'll probably want to use fullscreen.
 # So please scale everything to screen_width and screen_height.
 
@@ -21,6 +18,9 @@ screen = pygame.display.set_mode((screen_width, screen_height))#,pygame.FULLSCRE
 
 pygame.display.set_caption('Untitled Strategy Game')
 pygame.font.init()
+
+from world_map_file import world_map_class
+from gui_file import gui_class
 
 # Fonts will def need some work as this one is very basic.
 

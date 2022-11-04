@@ -4,13 +4,19 @@
 import pygame
 import random
 
-
 tile_plain = pygame.image.load("tiles/tile_plane.png").convert_alpha()
+tile_deep_ocean = pygame.image.load("tiles/tile_deep_ocean.png").convert_alpha()
+tile_shallow_ocean = pygame.image.load("tiles/tile_shallow_ocean.png").convert_alpha()
+tile_desert = pygame.image.load("tiles/tile_desert.png").convert_alpha()
+tile_human_grass = pygame.image.load("tiles/tile_human_grass.png").convert_alpha()
 
 class world_map_class:
 	def __init__(self, map_size):
 		self.map_size = map_size
 		self.tile_image_size = [64,32] #set the global size of the tile images
+		#the actual images are [64,48] because there is space on the top 
+		#this has to be accounted for when drawing
+		self.tile_image_height_offset = 16
 		self.tiles = []
 
 		#add the tiles to an array
@@ -27,7 +33,7 @@ class world_map_class:
 	def draw(self, screen):
 		for tile_line in self.tiles:
 			for tile in tile_line:
-				tile.draw(screen, self.origin_coordinates, self.zoom_level)
+				tile.draw(screen, self.origin_coordinates, self.zoom_level, self.tile_image_height_offset)
 
 	def mouse_click(self, position):
 		print("You clicked on the map")
@@ -42,7 +48,9 @@ class world_map_tile:
 		self.x = 200 #the current coordinates of the top left of the tile relative to scrolling and zooming
 		self.y = 200
 
-	def draw(self, screen, origin_coordinates, zoom_level):
+		self.base_terrain = random.choice([tile_plain, tile_desert, tile_deep_ocean, tile_shallow_ocean, tile_human_grass])
+
+	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
 		#compute your relative top left corner
 		self.x = 0.75*self.i*self.tile_image_size[0] - origin_coordinates[0]
 		self.y = self.j*self.tile_image_size[1] - origin_coordinates[1]
@@ -52,6 +60,7 @@ class world_map_tile:
 		#draw a polygon at that position
 		points = self.get_polygon_points()
 		pygame.draw.polygon(screen, [250,0,0], points, int(2))
+		screen.blit(self.base_terrain, (self.x, self.y - tile_image_height_offset))
 
 	def get_polygon_points(self):
 		points = [[self.x + 0.25*self.tile_image_size[0], self.y], 
