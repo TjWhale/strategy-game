@@ -30,7 +30,9 @@ pygame_clock = pygame.time.Clock()
 
 # These are the main game objects which are imported from their relevant files above.
 
-world_map = world_map_class()  # This is the background hex map.
+delta_time = 0 #the amount of ms inbetween each frame for smoothing movement
+
+world_map = world_map_class([20,20])  # This is the background hex map.
 gui = gui_class([screen_width, screen_height]) # This is the gui on the screen on top of the hex map.
 popup = False # If any other screen is in view it's a popup on top of everything else.
 # If a popup is in action the rest of the screen cannot be clicked on until the popup is closed.
@@ -49,7 +51,19 @@ def handle_mouse_click(event):
 
 #handle the mouse hovering on the screen
 def handle_mouse_hover():
-	pass
+	
+	if not popup:
+		#scroll the screen if the mouse is near the edge
+		mouse_pos = pygame.mouse.get_pos()
+		scroll_speed = int(0.3*delta_time)
+		if mouse_pos[0] < 100:
+			world_map.origin_coordinates[0] -= scroll_speed
+		if mouse_pos[0] > screen_width - 100:
+			world_map.origin_coordinates[0] += scroll_speed
+		if mouse_pos[1] < 100:
+			world_map.origin_coordinates[1] -= scroll_speed
+		if mouse_pos[1] > screen_height - 100:
+			world_map.origin_coordinates[1] += scroll_speed
 
 
 running = True
@@ -79,6 +93,6 @@ while running:
 	pygame.display.flip()
 
 	#print("frame time ms = ", pygame_clock.get_time())
-	pygame_clock.tick(60)
+	delta_time = pygame_clock.tick(60)
 
 pygame.quit()
