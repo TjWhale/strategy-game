@@ -47,6 +47,24 @@ class world_map_class:
 				if self.zoom_level > 1:
 					self.zoom_level = max(1, self.zoom_level-1)
 
+	def mouse_hover(self, screen, delta_time):
+		#scroll the screen if the mouse is near the edge
+		mouse_pos = pygame.mouse.get_pos()
+		screen_size = screen.get_size()
+		scroll_speed = 0.4*delta_time/self.zoom_level
+		if mouse_pos[0] < 50:
+			self.origin_coordinates[0] -= scroll_speed
+		if mouse_pos[0] > screen_size[0] - 50:
+			self.origin_coordinates[0] += scroll_speed
+		if mouse_pos[1] < 50:
+			self.origin_coordinates[1] -= scroll_speed
+		if mouse_pos[1] > screen_size[1] - 50:
+			self.origin_coordinates[1] += scroll_speed
+
+		#make sure that the origin is at an integer value for pixel perfect
+		self.origin_coordinates[0] = int(self.origin_coordinates[0])
+		self.origin_coordinates[1] = int(self.origin_coordinates[1])
+
 class world_map_tile:
 	def __init__(self, i, j, tile_image_size):
 		self.i = i #x coordinate of the tile in the grid
