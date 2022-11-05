@@ -61,8 +61,9 @@ class world_map_tile:
 
 	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
 		#compute your relative top left corner
-		self.x = (0.75*self.i*self.tile_image_size[0] - origin_coordinates[0])*zoom_level
-		self.y = (self.j*self.tile_image_size[1] - origin_coordinates[1])*zoom_level
+		screen_size = screen.get_size()
+		self.x = (0.75*self.i*self.tile_image_size[0] - origin_coordinates[0])*zoom_level + screen_size[0]/2
+		self.y = (self.j*self.tile_image_size[1] - origin_coordinates[1])*zoom_level + screen_size[1]/2
 		if self.i % 2 == 1:
 			self.y += self.tile_image_size[1]*zoom_level/2
 

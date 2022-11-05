@@ -55,7 +55,7 @@ def handle_mouse_hover():
 	if not popup:
 		#scroll the screen if the mouse is near the edge
 		mouse_pos = pygame.mouse.get_pos()
-		scroll_speed = int(0.3*delta_time)
+		scroll_speed = 0.4*delta_time/world_map.zoom_level
 		if mouse_pos[0] < 50:
 			world_map.origin_coordinates[0] -= scroll_speed
 		if mouse_pos[0] > screen_width - 50:
@@ -64,6 +64,10 @@ def handle_mouse_hover():
 			world_map.origin_coordinates[1] -= scroll_speed
 		if mouse_pos[1] > screen_height - 50:
 			world_map.origin_coordinates[1] += scroll_speed
+
+		#make sure that the origin is at an integer value for pixel perfect
+		world_map.origin_coordinates[0] = int(world_map.origin_coordinates[0])
+		world_map.origin_coordinates[1] = int(world_map.origin_coordinates[1])
 
 
 running = True
