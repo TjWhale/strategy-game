@@ -25,6 +25,8 @@ class world_map_class:
 			for j in range(map_size[1]):
 				self.tiles[i].append(world_map_tile(i,j, self.tile_image_size))
 
+		self.check_tile_tags_for_clashes()
+
 		#parameters for drawing the map
 		self.origin_coordinates = [200,100]
 		self.zoom_level = 1
@@ -65,6 +67,18 @@ class world_map_class:
 		self.origin_coordinates[0] = int(self.origin_coordinates[0])
 		self.origin_coordinates[1] = int(self.origin_coordinates[1])
 
+	#look through all the tiles and make sure they don't have mixed tags, like "desert" and "deep ocean" at the same time
+	def check_tile_tags_for_clashes(self):
+		#list of combinations of tags which can't happen at the same time
+		forbidden_combinations = [["plain", "desert", "deep ocean", "shallow ocean", "human grass"]]
+		for forbidden_combination in forbidden_combinations:
+			for tile_line in self.tiles:
+				for tile in tile_line:
+					if sum(x in tile.tile_tags for x in forbidden_combination) > 1:
+						print("Error, duplicates detected in the tile_tags of tile", tile.i, ", ", tile.j, ". Tags are ", tile.tile_tags)
+
+
+
 class world_map_tile:
 	def __init__(self, i, j, tile_image_size):
 		self.i = i #x coordinate of the tile in the grid
@@ -75,7 +89,8 @@ class world_map_tile:
 		self.x = 0 #the current coordinates of the top left of the tile relative to scrolling and zooming
 		self.y = 0
 
-		self.base_terrain = random.choice([tile_plain, tile_desert, tile_deep_ocean, tile_shallow_ocean, tile_human_grass])
+		self.tile_tags = [] #this contains a list of tags which determine what the tile is
+		self.tile_tags.append(random.choice(["plain", "desert", "deep ocean", "shallow ocean", "human grass"]))
 
 	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
 		#compute your relative top left corner
@@ -88,7 +103,16 @@ class world_map_tile:
 		#draw a polygon at that position
 		#points = self.get_polygon_points()
 		#pygame.draw.polygon(screen, [250,0,0], points, int(2))
-		drawn_tile = pygame.transform.rotozoom(self.base_terrain, 0, zoom_level)
+		base_terrain = tile_plain
+		if "desert" in self.tile_tags:
+			base_terrain = tile_desert
+		if "deep ocean" in self.tile_tags:
+			base_terrain = tile_deep_ocean
+		if "shallow ocean" in self.tile_tags:
+			base_terrain = tile_shallow_ocean
+		if "human grass" in self.tile_tags:
+			base_terrain = tile_human_grass
+		drawn_tile = pygame.transform.rotozoom(base_terrain, 0, zoom_level)
 		screen.blit(drawn_tile, (self.x, self.y - tile_image_height_offset*zoom_level))
 
 	def get_polygon_points(self):
