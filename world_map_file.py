@@ -4,6 +4,14 @@
 import pygame
 import random
 
+#this should defeinitely not be replicated here and in gui_file haha
+#helper funciton for colliding points and rects
+def collide_position_rect(pos, rect):
+	if (pos[0] >= rect[0] and pos[0] <= rect[0] + rect[2]
+		and pos[1] >= rect[1] and pos[1] <= rect[1] + rect[3]):
+			return True
+	return False
+
 tile_plain = pygame.image.load("tiles/tile_plane.png").convert_alpha()
 tile_deep_ocean = pygame.image.load("tiles/tile_deep_ocean.png").convert_alpha()
 tile_shallow_ocean = pygame.image.load("tiles/tile_shallow_ocean.png").convert_alpha()
@@ -14,6 +22,7 @@ class world_map_class:
 	def __init__(self, map_size):
 		self.map_size = map_size
 		self.tile_image_size = [64,32] #set the global size of the tile images
+		self.actual_tile_image_size = [64,48]
 		#the actual images are [64,48] because there is space on the top 
 		#this has to be accounted for when drawing
 		self.tile_image_height_offset = 16
@@ -23,7 +32,7 @@ class world_map_class:
 		for i in range(map_size[0]):
 			self.tiles.append([])
 			for j in range(map_size[1]):
-				self.tiles[i].append(world_map_tile(i,j, self.tile_image_size))
+				self.tiles[i].append(world_map_tile(i,j, self.tile_image_size, self.actual_tile_image_size))
 
 		self.check_tile_tags_for_clashes()
 
@@ -40,14 +49,27 @@ class world_map_class:
 	def mouse_click(self, event):
 		print("You clicked on the map")
 		if event.type == pygame.MOUSEBUTTONDOWN:
+			#select a tile on the map
+			if event.button == 1:
+				mouse_pos = pygame.mouse.get_pos()
+				#go through the tiles and find out any that you clicked on
+				for tile_line in self.tiles:
+					for tile in tile_line:
+						if (collide_position_rect(mouse_pos, [tile.x, tile.y, tile.x_size, tile.y_size])):
+							#if the tiles image was clicked on check inside it to see if it the pixels were clicked
+							tile.check_click([int(mouse_pos[0] - tile.x), int(mouse_pos[1] - tile.y + 16)])
+
 			#zoom the screen with the scroll wheel
-			if event.button == 4:
+			elif event.button == 4:
 				if self.zoom_level < 4:
 					self.zoom_level = min(4, self.zoom_level+1)
 
 			elif event.button == 5:
 				if self.zoom_level > 1:
 					self.zoom_level = max(1, self.zoom_level-1)
+
+
+
 
 	def mouse_hover(self, screen, delta_time):
 		#scroll the screen if the mouse is near the edge
@@ -80,29 +102,35 @@ class world_map_class:
 
 
 class world_map_tile:
-	def __init__(self, i, j, tile_image_size):
+	def __init__(self, i, j, tile_image_size, actual_tile_image_size):
 		self.i = i #x coordinate of the tile in the grid
 		self.j = j #y coordinate of the tile in the grid
 
 		self.tile_image_size = tile_image_size #how big is the tile image in pixels?
+		self.actual_tile_image_size = actual_tile_image_size
 
 		self.x = 0 #the current coordinates of the top left of the tile relative to scrolling and zooming
 		self.y = 0
+		self.x_size = 0 #the current size of the tile relative to zooming
+		self.y_size = 0 
 
 		self.tile_tags = [] #this contains a list of tags which determine what the tile is
 		self.tile_tags.append(random.choice(["plain", "desert", "deep ocean", "shallow ocean", "human grass"]))
+
+		self.image = pygame.Surface(actual_tile_image_size) #the compound image of everything on the tile
+
+		self.selected = False #is this tile currently selected
 
 	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
 		#compute your relative top left corner
 		screen_size = screen.get_size()
 		self.x = (0.75*self.i*self.tile_image_size[0] - origin_coordinates[0])*zoom_level + screen_size[0]/2
 		self.y = (self.j*self.tile_image_size[1] - origin_coordinates[1])*zoom_level + screen_size[1]/2
+		self.x_size = self.tile_image_size[0]*zoom_level
+		self.y_size = self.tile_image_size[1]*zoom_level
 		if self.i % 2 == 1:
 			self.y += self.tile_image_size[1]*zoom_level/2
 
-		#draw a polygon at that position
-		#points = self.get_polygon_points()
-		#pygame.draw.polygon(screen, [250,0,0], points, int(2))
 		base_terrain = tile_plain
 		if "desert" in self.tile_tags:
 			base_terrain = tile_desert
@@ -112,8 +140,21 @@ class world_map_tile:
 			base_terrain = tile_shallow_ocean
 		if "human grass" in self.tile_tags:
 			base_terrain = tile_human_grass
-		drawn_tile = pygame.transform.rotozoom(base_terrain, 0, zoom_level)
-		screen.blit(drawn_tile, (self.x, self.y - tile_image_height_offset*zoom_level))
+
+		#draw everything onto your draw surface
+		self.image = pygame.Surface(self.actual_tile_image_size).convert_alpha()
+		self.image.fill((0,0,0,0))
+		self.image.blit(base_terrain, (0,0))
+
+		if self.selected:
+			pygame.draw.circle(self.image, [255,0,0], (32, 36), 5)
+
+		#draw a polygon at that position
+		#points = self.get_polygon_points()
+		#pygame.draw.polygon(screen, [250,0,0], points, int(2))
+
+		self.image = pygame.transform.rotozoom(self.image, 0, zoom_level)
+		screen.blit(self.image, (self.x, self.y - tile_image_height_offset*zoom_level))
 
 	def get_polygon_points(self):
 		points = [[self.x + 0.25*self.tile_image_size[0], self.y], 
@@ -124,5 +165,13 @@ class world_map_tile:
 				[self.x, self.y + 0.5*self.tile_image_size[1]]]
 
 		return points
+
+	#if the tile was clicked on as whole
+	#then check the pixels of the image to see if they were clicked on
+	def check_click(self, pos):
+		print(self.i, self.j)
+		print(self.image.get_at(pos))
+		if self.image.get_at(pos) != (0,0,0,0):
+			self.selected = True
 
 
