@@ -21,30 +21,28 @@ tile_human_grass = pygame.image.load("tiles/tile_human_grass.png").convert_alpha
 class world_map_class:
 	def __init__(self, map_size):
 		self.map_size = map_size
-		self.tile_image_size = [64,32] #set the global size of the tile images
-		self.actual_tile_image_size = [64,48]
-		#the actual images are [64,48] because there is space on the top 
-		#this has to be accounted for when drawing
-		self.tile_image_height_offset = 16
+		self.tile_visual_size = [64,32] #how many pixels are the base tiles on the screen?
+		self.actual_tile_image_size = [64,48] #how big are the actual tile images? 
+		#They have blank space on the top above the top of the visible tile.
 		self.tiles = []
 
 		#add the tiles to an array
 		for i in range(map_size[0]):
 			self.tiles.append([])
 			for j in range(map_size[1]):
-				self.tiles[i].append(world_map_tile(i,j, self.tile_image_size, self.actual_tile_image_size))
+				self.tiles[i].append(world_map_tile(i,j, self.tile_visual_size, self.actual_tile_image_size))
 
 		self.check_tile_tags_for_clashes()
 
 		#parameters for drawing the map
-		self.origin_coordinates = [200,100]
+		self.origin_coordinates = [50,30]
 		self.zoom_level = 1
 
 	#given some coordinates for the center of the screen and a zoom level draw the map
 	def draw(self, screen):
 		for tile_line in self.tiles:
 			for tile in tile_line:
-				tile.draw(screen, self.origin_coordinates, self.zoom_level, self.tile_image_height_offset)
+				tile.draw(screen, self.origin_coordinates, self.zoom_level)
 
 	def mouse_click(self, event):
 		print("You clicked on the map")
@@ -57,7 +55,11 @@ class world_map_class:
 					for tile in tile_line:
 						if (collide_position_rect(mouse_pos, [tile.x, tile.y, tile.x_size, tile.y_size])):
 							#if the tiles image was clicked on check inside it to see if it the pixels were clicked
-							tile.check_click([int(mouse_pos[0] - tile.x), int(mouse_pos[1] - tile.y + 16)])
+							click_pos = [0,0] #the point on the image tile which was clicked
+							click_pos[0] = min(int((mouse_pos[0] - tile.x)/self.zoom_level), self.actual_tile_image_size[0]-1)
+							click_pos[1] = min(int((mouse_pos[1] - tile.y)/self.zoom_level), self.actual_tile_image_size[1]-1)
+							tile.check_click(click_pos)
+							print(click_pos)
 
 			#zoom the screen with the scroll wheel
 			elif event.button == 4:
@@ -102,12 +104,12 @@ class world_map_class:
 
 
 class world_map_tile:
-	def __init__(self, i, j, tile_image_size, actual_tile_image_size):
+	def __init__(self, i, j, tile_visual_size, actual_tile_image_size):
 		self.i = i #x coordinate of the tile in the grid
 		self.j = j #y coordinate of the tile in the grid
 
-		self.tile_image_size = tile_image_size #how big is the tile image in pixels?
-		self.actual_tile_image_size = actual_tile_image_size
+		self.tile_visual_size = tile_visual_size #how big does the tile look on the screen in pixels?
+		self.actual_tile_image_size = actual_tile_image_size #how big is the tile image?
 
 		self.x = 0 #the current coordinates of the top left of the tile relative to scrolling and zooming
 		self.y = 0
@@ -121,15 +123,18 @@ class world_map_tile:
 
 		self.selected = False #is this tile currently selected
 
-	def draw(self, screen, origin_coordinates, zoom_level, tile_image_height_offset):
+	def draw(self, screen, origin_coordinates, zoom_level):
+		#how much blank space is on the top of the tiles?
+		tile_image_height_offset  = self.actual_tile_image_size[1] - self.tile_visual_size[1]
 		#compute your relative top left corner
 		screen_size = screen.get_size()
-		self.x = (0.75*self.i*self.tile_image_size[0] - origin_coordinates[0])*zoom_level + screen_size[0]/2
-		self.y = (self.j*self.tile_image_size[1] - origin_coordinates[1])*zoom_level + screen_size[1]/2
-		self.x_size = self.tile_image_size[0]*zoom_level
-		self.y_size = self.tile_image_size[1]*zoom_level
+		self.x = (0.75*self.i*self.tile_visual_size[0] - origin_coordinates[0])*zoom_level + screen_size[0]/2
+		self.y = (self.j*self.tile_visual_size[1] - origin_coordinates[1])*zoom_level + screen_size[1]/2
+		#compute the current size of the image
+		self.x_size = self.actual_tile_image_size[0]*zoom_level
+		self.y_size = self.actual_tile_image_size[1]*zoom_level
 		if self.i % 2 == 1:
-			self.y += self.tile_image_size[1]*zoom_level/2
+			self.y += self.tile_visual_size[1]*zoom_level/2
 
 		base_terrain = tile_plain
 		if "desert" in self.tile_tags:
@@ -147,22 +152,22 @@ class world_map_tile:
 		self.image.blit(base_terrain, (0,0))
 
 		if self.selected:
-			pygame.draw.circle(self.image, [255,0,0], (32, 36), 5)
+			pygame.draw.circle(self.image, [255,0,0], self.selected, 2)
 
 		#draw a polygon at that position
 		#points = self.get_polygon_points()
 		#pygame.draw.polygon(screen, [250,0,0], points, int(2))
 
-		self.image = pygame.transform.rotozoom(self.image, 0, zoom_level)
-		screen.blit(self.image, (self.x, self.y - tile_image_height_offset*zoom_level))
+		display_image = pygame.transform.rotozoom(self.image, 0, zoom_level)
+		screen.blit(display_image, (self.x, self.y))
 
 	def get_polygon_points(self):
-		points = [[self.x + 0.25*self.tile_image_size[0], self.y], 
-				[self.x + 0.75*self.tile_image_size[0], self.y], 
-				[self.x + self.tile_image_size[0], self.y + 0.5*self.tile_image_size[1]], 
-				[self.x + 0.75*self.tile_image_size[0], self.y + self.tile_image_size[1]], 
-				[self.x + 0.25*self.tile_image_size[0], self.y + self.tile_image_size[1]], 
-				[self.x, self.y + 0.5*self.tile_image_size[1]]]
+		points = [[self.x + 0.25*self.tile_visual_size[0], self.y], 
+				[self.x + 0.75*self.tile_visual_size[0], self.y], 
+				[self.x + self.tile_visual_size[0], self.y + 0.5*self.tile_visual_size[1]], 
+				[self.x + 0.75*self.tile_visual_size[0], self.y + self.tile_visual_size[1]], 
+				[self.x + 0.25*self.tile_visual_size[0], self.y + self.tile_visual_size[1]], 
+				[self.x, self.y + 0.5*self.tile_visual_size[1]]]
 
 		return points
 
@@ -172,6 +177,6 @@ class world_map_tile:
 		print(self.i, self.j)
 		print(self.image.get_at(pos))
 		if self.image.get_at(pos) != (0,0,0,0):
-			self.selected = True
+			self.selected = pos
 
 
